@@ -20,10 +20,6 @@ toast is a beautiful developer environment right in your terminal. vim, nvim, an
 | vscode | ❌ | ❌ | ✅ | ✅ |
 | zed | ❌ | ❌ | ✅ | ✅ |
 
-> toast is the only one that checks all the boxes: no AI, no telemetry, and a
-> file tree and mouse support built in. vim and emacs leave the file tree (and
-> usable mouse support) to plugins and configuration.
-
 > ⚠️ This project is in _early development_, you may encounter bugs. ⚠️
 
 <img src="toast-demo.gif" alt="toast logo" width="800" style="border-radius: 12px; display: block; margin: 20px 0;">
