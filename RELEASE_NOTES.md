@@ -1,5 +1,20 @@
 # Release Notes
 
+## v0.8.2 — 2026-08-29
+
+Auto-save now writes files verbatim — intentional trailing spaces (e.g. markdown hard line breaks) survive background saves, and only an explicit ctrl+s applies the configured trim — and cursor positioning correctly handles multi-cell emoji. The README also gains a features/trade-offs comparison table.
+
+### Fixes
+- Auto-save writes the buffer **verbatim** (issue #56): background saves no longer strip trailing whitespace or force a final newline, so intentional trailing spaces survive auto-save. Only an explicit ctrl+s (or the settings toggle) applies the configured `trim_trailing_whitespace_on_save`. Regression tests cover trailing spaces on disk and mid-file edits.
+- Cursor, layout, and wrapping math now use per-grapheme-cluster display widths, fixing the off-by-one cursor column after wide emoji (e.g. ⚠️ renders 2 cells) and misaligned wrapped lines. Regression tests cover emoji/VS16 sequences.
+
+### Docs & misc
+- README adds a features/trade-offs comparison table (toast vs vim/emacs/vscode/zed): no AI features, no telemetry, built-in file tree, mouse support — toast is the only one that checks every box.
+- New `docs/experimental/side-by-side-editors.md` design & learnings doc for the in-progress side-by-side editors feature (issue #49).
+- LICENSE updated with the maintainer's pledge: if toast ever gains irrelevant features (AI agents, AI chat, telemetry) that don't make it a better text editor, you can come kick the maintainer's ass.
+
+---
+
 ## v0.8.1 — 2026-08-06
 
 Fixes a crash (panic) when editing multi-line text: auto-save's trailing-whitespace trim replaced the buffer without moving the cursor, so the next backspace sliced past the end of a now-shorter line.
