@@ -22,6 +22,19 @@ func TestDefaultKeybindingsNotEmpty(t *testing.T) {
 	}
 }
 
+func TestFirstKey(t *testing.T) {
+	km := DefaultKeybindings()
+	if got := km.FirstKey(ActionSave); got != "ctrl+s" {
+		t.Errorf("FirstKey(save) = %q, want ctrl+s", got)
+	}
+	if got := km.FirstKey(ActionQuit); got != "ctrl+q" {
+		t.Errorf("FirstKey(quit) = %q, want ctrl+q", got)
+	}
+	if got := km.FirstKey("does_not_exist"); got != "" {
+		t.Errorf("FirstKey(unknown) = %q, want empty", got)
+	}
+}
+
 func TestDefaultKeybindingsHaveStrings(t *testing.T) {
 	km := DefaultKeybindings()
 	for action, keys := range km {

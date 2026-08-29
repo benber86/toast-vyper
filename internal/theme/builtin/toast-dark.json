@@ -9,7 +9,7 @@
     "sidebar_bg": "#181825", "sidebar_fg": "#cdd6f4", "sidebar_icon_fg": "#89b4fa",
     "sidebar_selected_bg": "#313244", "sidebar_selected_fg": "#cdd6f4",
     "statusbar_bg": "#181825", "statusbar_fg": "#a6adc8",
-    "breadcrumbs_fg": "#6c7086", "breadcrumbs_active_fg": "#cdd6f4",
+    "breadcrumbs_fg": "#6c7086", "muted": "#6c7086", "breadcrumbs_active_fg": "#cdd6f4",
     "gutter_fg": "#45475a", "gutter_active_fg": "#cdd6f4",
     "diagnostic_error": "#f38ba8", "diagnostic_warning": "#fab387",
     "diagnostic_info": "#89b4fa", "diagnostic_hint": "#a6e3a1",

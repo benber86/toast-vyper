@@ -15,6 +15,7 @@ import (
 
 	"github.com/yourusername/toast/internal/components/breadcrumbs"
 	"github.com/yourusername/toast/internal/components/closedialog"
+	"github.com/yourusername/toast/internal/components/commandpalette"
 	"github.com/yourusername/toast/internal/components/editor"
 	"github.com/yourusername/toast/internal/components/filetree"
 	"github.com/yourusername/toast/internal/components/findreplace"
@@ -45,6 +46,10 @@ const (
 	FocusSearch
 )
 
+// statusFlashDuration is how long the statusbar's transient confirmation
+// flash stays visible after a command palette selection.
+const statusFlashDuration = 1500 * time.Millisecond
+
 // Model is the top-level application model that composes all components.
 type Model struct {
 	cfg   config.Config
@@ -73,6 +78,9 @@ type Model struct {
 
 	quickOpenOpen bool
 	quickOpen     quickopen.Model
+
+	commandPaletteOpen bool
+	commandPalette     commandpalette.Model
 
 	// workspacePromptVisible shows the Select Workspace button in the editor
 	// area (bundled app's fresh-open state: no file, no workspace).
@@ -187,6 +195,7 @@ func New(cfg config.Config, themeDir, rootDir, initialFile string) (*Model, erro
 		goToLine:        gotoline.NewWithTheme(tm),
 		findReplace:     findreplace.New(tm),
 		quickOpen:       quickopen.New(tm, rootDir, cfg.IgnoredPatterns),
+		commandPalette:  commandpalette.New(tm, cfg.Keybindings),
 		lspInstall:      lspinstall.New(tm),
 
 		fileTree:   filetree.New(tm, cfg, rootDir),
@@ -586,6 +595,40 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case messages.QuickOpenCloseMsg:
 		m.closeQuickOpen()
 
+	case messages.CommandPaletteOpenMsg:
+		cmd := m.openCommandPalette()
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+	case messages.CommandPaletteCloseMsg:
+		m.closeCommandPalette()
+
+	case messages.CommandPaletteSelectMsg:
+		// Close the palette for every action except the palette itself: for
+		// ActionCommandPalette, runAction toggles it closed (it is still open
+		// here), and no flash is shown.
+		if msg.ActionID != config.ActionCommandPalette {
+			m.closeCommandPalette()
+		}
+		if cmd := m.runAction(msg.ActionID); cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+		// Branded confirmation flash + keybinding coach nudge.
+		if msg.ActionID != config.ActionCommandPalette {
+			flash := "✓ " + msg.Label
+			if hint := m.cfg.Keybindings.FirstKey(msg.ActionID); hint != "" {
+				flash += " — next time: " + hint
+			}
+			m.statusBar.SetFlash(flash)
+			cmds = append(cmds, tea.Tick(statusFlashDuration, func(time.Time) tea.Msg {
+				return messages.StatusFlashClearMsg{}
+			}))
+		}
+
+	case messages.StatusFlashClearMsg:
+		m.statusBar.ClearFlash()
+
 	case quickopen.LoadFilesMsg:
 		updated, cmd := m.quickOpen.Update(msg)
 		m.quickOpen = updated
@@ -880,6 +923,25 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 		return cmd
 	}
 
+	if m.commandPaletteOpen {
+		// Forward keypresses to the command palette overlay.
+		if m.isEscape(msg) {
+			m.closeCommandPalette()
+			return nil
+		}
+		if m.isCommandPalette(msg) {
+			// Palette toggle key closes it again.
+			m.closeCommandPalette()
+			return nil
+		}
+		updated, cmd := m.commandPalette.Update(msg)
+		m.commandPalette = updated
+		if !m.commandPalette.IsOpen() {
+			m.commandPaletteOpen = false
+		}
+		return cmd
+	}
+
 	if m.findReplaceOpen {
 		if m.isEscape(msg) {
 			m.closeFindReplace()
@@ -911,82 +973,50 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 		return nil
 	}
 
-	// App-level keys always checked first.
+	// App-level keys always checked first. Every case delegates to runAction so
+	// the command palette triggers the exact same code paths as the keybindings.
 	switch {
 	case m.isQuit(msg):
-		return m.requestQuit()
+		return m.runAction(config.ActionQuit)
 
 	case m.isToggleSidebar(msg):
-		m.sidebarVisible = !m.sidebarVisible
-		cmds := m.resizeComponents()
-		return tea.Batch(cmds...)
+		return m.runAction(config.ActionToggleSidebar)
 
 	case m.isCloseTab(msg):
-		if tab := m.tabBar.ActiveTab(); tab != nil {
-			return m.requestCloseTab(tab.BufferID, tab.Path)
-		}
-		return nil
+		return m.runAction(config.ActionCloseTab)
 
 	case m.isSearch(msg):
-		m.openSearch()
-		return nil
+		return m.runAction(config.ActionSearch)
 
 	case m.isFindReplace(msg):
-		m.openFindReplace(m.editor.SelectedText())
-		return nil
+		return m.runAction(config.ActionFindReplace)
 
 	case m.isGoToLine(msg):
-		m.goToLine = m.goToLine.Open(m.editor.LineCount())
-		m.goToLineOpen = true
-		return nil
+		return m.runAction(config.ActionGoToLine)
 
 	case m.isQuickOpen(msg):
-		return m.openQuickOpen()
+		return m.runAction(config.ActionQuickOpen)
+
+	case m.isCommandPalette(msg):
+		return m.runAction(config.ActionCommandPalette)
 
 	case m.isSettings(msg):
-		if m.settingsOpen {
-			m.settingsOpen = false
-		} else {
-			m.settings = settings.New(m.theme, m.themeDir, m.cfg)
-			m.settingsOpen = true
-		}
-		return nil
+		return m.runAction(config.ActionOpenSettings)
 
 	case m.isGoToDefinition(msg):
-		if m.editor.Path() == "" {
-			return nil
-		}
-		return func() tea.Msg {
-			return messages.DefinitionRequestMsg{
-				BufferID: m.editor.BufferID(), Path: m.editor.Path(),
-				Line: m.editor.CursorLine(), Col: m.editor.CursorCol(), Navigate: true,
-			}
-		}
+		return m.runAction(config.ActionGoToDefinition)
 
 	case m.isTriggerCompletion(msg):
-		if m.focus != FocusEditor || m.editor.Path() == "" {
-			return nil
-		}
-		return func() tea.Msg {
-			return messages.CompletionRequestMsg{
-				BufferID: m.editor.BufferID(), Generation: m.editor.BufferGeneration(), Path: m.editor.Path(),
-				Line: m.editor.CursorLine(), Col: m.editor.CursorCol(),
-			}
-		}
+		return m.runAction(config.ActionTriggerCompletion)
 
 	case m.isMarkdownPreview(msg):
-		if isMarkdownPath(m.editor.Path()) {
-			m.togglePreview()
-		}
-		return nil
+		return m.runAction(config.ActionMarkdownPreview)
 
 	case m.isNextTab(msg):
-		cmd := m.tabBar.NextTab()
-		return cmd
+		return m.runAction(config.ActionNextTab)
 
 	case m.isPrevTab(msg):
-		cmd := m.tabBar.PrevTab()
-		return cmd
+		return m.runAction(config.ActionPrevTab)
 
 	case m.isEscape(msg):
 		if m.searchOpen {
@@ -1009,17 +1039,141 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 		}
 
 	case m.isToggleFocus(msg):
-		// Toggle focus between editor and file tree
+		return m.runAction(config.ActionToggleFocus)
+	}
+
+	// Forward to focused component.
+	return m.updateFocused(msg)
+}
+
+// runAction executes an action identified by a config.Action* constant. It
+// backs both the app-level keybindings (the switch in Update) and the command
+// palette, so every keybinding-able action is also a palette command.
+func (m *Model) runAction(action string) tea.Cmd {
+	switch action {
+	case config.ActionQuit:
+		return m.requestQuit()
+
+	case config.ActionToggleSidebar:
+		m.sidebarVisible = !m.sidebarVisible
+		cmds := m.resizeComponents()
+		return tea.Batch(cmds...)
+
+	case config.ActionCloseTab:
+		if tab := m.tabBar.ActiveTab(); tab != nil {
+			return m.requestCloseTab(tab.BufferID, tab.Path)
+		}
+		return nil
+
+	case config.ActionSearch:
+		m.openSearch()
+		return nil
+
+	case config.ActionFindReplace:
+		m.openFindReplace(m.editor.SelectedText())
+		return nil
+
+	case config.ActionGoToLine:
+		m.goToLine = m.goToLine.Open(m.editor.LineCount())
+		m.goToLineOpen = true
+		return nil
+
+	case config.ActionQuickOpen:
+		return m.openQuickOpen()
+
+	case config.ActionCommandPalette:
+		if m.commandPaletteOpen {
+			m.closeCommandPalette()
+			return nil
+		}
+		return m.openCommandPalette()
+
+	case config.ActionOpenSettings:
+		if m.settingsOpen {
+			m.settingsOpen = false
+		} else {
+			m.settings = settings.New(m.theme, m.themeDir, m.cfg)
+			m.settingsOpen = true
+		}
+		return nil
+
+	case config.ActionThemePicker:
+		return func() tea.Msg { return messages.ThemePickerOpenMsg{} }
+
+	case config.ActionGoToDefinition:
+		if m.editor.Path() == "" {
+			return nil
+		}
+		return func() tea.Msg {
+			return messages.DefinitionRequestMsg{
+				BufferID: m.editor.BufferID(), Path: m.editor.Path(),
+				Line: m.editor.CursorLine(), Col: m.editor.CursorCol(), Navigate: true,
+			}
+		}
+
+	case config.ActionTriggerCompletion:
+		if m.focus != FocusEditor || m.editor.Path() == "" {
+			return nil
+		}
+		return func() tea.Msg {
+			return messages.CompletionRequestMsg{
+				BufferID: m.editor.BufferID(), Generation: m.editor.BufferGeneration(), Path: m.editor.Path(),
+				Line: m.editor.CursorLine(), Col: m.editor.CursorCol(),
+			}
+		}
+
+	case config.ActionMarkdownPreview:
+		if isMarkdownPath(m.editor.Path()) {
+			m.togglePreview()
+		}
+		return nil
+
+	case config.ActionNextTab:
+		return m.tabBar.NextTab()
+
+	case config.ActionPrevTab:
+		return m.tabBar.PrevTab()
+
+	case config.ActionToggleFocus:
 		if m.focus == FocusFileTree {
 			m.setFocus(FocusEditor)
 		} else {
 			m.setFocus(FocusFileTree)
 		}
 		return nil
-	}
 
-	// Forward to focused component.
-	return m.updateFocused(msg)
+	case config.ActionSave:
+		// Editor-owned action: ensure editor focus, then synthesize the ctrl+s
+		// keypress, mirroring the save-on-quit path in Update.
+		if m.editor.Path() == "" {
+			return nil
+		}
+		m.setFocus(FocusEditor)
+		updated, saveCmd := m.editor.Update(tea.KeyPressMsg{Code: 's', Mod: tea.ModCtrl})
+		m.editor = updated.(editor.Model)
+		return saveCmd
+
+	case config.ActionUndo:
+		if m.editor.Path() == "" {
+			return nil
+		}
+		m.setFocus(FocusEditor)
+		updated, _ := m.editor.Update(tea.KeyPressMsg{Code: 'z', Mod: tea.ModCtrl})
+		m.editor = updated.(editor.Model)
+		return nil
+
+	case config.ActionRedo:
+		if m.editor.Path() == "" {
+			return nil
+		}
+		m.setFocus(FocusEditor)
+		updated, _ := m.editor.Update(tea.KeyPressMsg{Code: 'y', Mod: tea.ModCtrl})
+		m.editor = updated.(editor.Model)
+		return nil
+
+	default:
+		return nil
+	}
 }
 
 // requestCloseTab checks if the buffer is modified and either closes it
@@ -1761,6 +1915,28 @@ func (m *Model) closeQuickOpen() {
 	m.quickOpen, _ = m.quickOpen.Update(messages.QuickOpenCloseMsg{})
 }
 
+func (m *Model) openCommandPalette() tea.Cmd {
+	if m.searchOpen {
+		m.closeSearch()
+	}
+	if m.findReplaceOpen {
+		m.closeFindReplace()
+	}
+	if m.quickOpenOpen {
+		m.closeQuickOpen()
+	}
+	m.commandPalette.SetToggleState(config.ActionToggleSidebar, m.sidebarVisible)
+	m.commandPalette.SetToggleState(config.ActionMarkdownPreview, m.previewOpen)
+	m.commandPalette = m.commandPalette.Open()
+	m.commandPaletteOpen = true
+	return nil
+}
+
+func (m *Model) closeCommandPalette() {
+	m.commandPaletteOpen = false
+	m.commandPalette, _ = m.commandPalette.Update(messages.CommandPaletteCloseMsg{})
+}
+
 func (m *Model) syncFindReplaceStatus() {
 	current, total := m.editor.FindStatus()
 	m.findReplace.SetMatchStatus(current, total)
@@ -2281,6 +2457,11 @@ func (m *Model) View() tea.View {
 	}
 	if m.quickOpenOpen {
 		overlayStr := m.quickOpen.Render()
+		v.Content = overlayCenter(v.Content, overlayStr, m.width, m.height)
+	}
+	if m.commandPaletteOpen {
+		v.Content = dimContent(v.Content)
+		overlayStr := m.commandPalette.Render()
 		v.Content = overlayCenter(v.Content, overlayStr, m.width, m.height)
 	}
 	if m.findReplaceOpen {

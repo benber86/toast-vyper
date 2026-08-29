@@ -23,6 +23,8 @@ const (
 	ActionSearch            = "search"
 	ActionFindReplace       = "find_replace"
 	ActionQuickOpen         = "quick_open"
+	ActionCommandPalette    = "command_palette"
+	ActionThemePicker       = "theme_picker"
 	ActionGoToLine          = "go_to_line"
 	ActionGoToDefinition    = "go_to_definition"
 	ActionToggleFocus       = "toggle_focus"
@@ -126,6 +128,7 @@ func DefaultKeybindings() KeybindingMap {
 		ActionSearch:            {"ctrl+shift+f"},
 		ActionFindReplace:       {"ctrl+f", "super+f"},
 		ActionQuickOpen:         {"ctrl+p", "super+p"},
+		ActionCommandPalette:    {"ctrl+shift+p", "super+shift+p"},
 		ActionGoToLine:          {"ctrl+g", "super+l"},
 		ActionGoToDefinition:    {"f12"},
 		ActionToggleFocus:       {"ctrl+shift+e"},
@@ -155,6 +158,17 @@ func (km KeybindingMap) Match(msg tea.KeyPressMsg, action string) bool {
 		}
 	}
 	return false
+}
+
+// FirstKey returns the first configured key combination for action, or ""
+// when the action has no bindings. Used for keybinding hints in the command
+// palette.
+func (km KeybindingMap) FirstKey(action string) string {
+	keys := km[action]
+	if len(keys) == 0 {
+		return ""
+	}
+	return keys[0]
 }
 
 // MatchEscape returns true when the key press matches the configured escape

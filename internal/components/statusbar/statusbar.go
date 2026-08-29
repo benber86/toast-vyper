@@ -41,6 +41,7 @@ type Model struct {
 	branch          string
 	errorCount      int
 	warnCount       int
+	flash           string
 	lspStatus       map[string]messages.LSPServerStatus
 	themeButtonX    int
 	settingsButtonX int
@@ -99,6 +100,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *Model) SetCursor(line, col int) { m.line = line; m.col = col }
 
+// SetFlash shows a transient confirmation message (command palette feedback)
+// in the status bar until ClearFlash is called.
+func (m *Model) SetFlash(s string) { m.flash = s }
+
+// ClearFlash removes the transient confirmation flash.
+func (m *Model) ClearFlash() { m.flash = "" }
+
 func (m Model) View() tea.View {
 	bg := lipgloss.Color(m.theme.UI("statusbar_bg"))
 	fg := lipgloss.Color(m.theme.UI("statusbar_fg"))
@@ -121,6 +129,9 @@ func (m Model) View() tea.View {
 	}
 	left += base.Render(m.encoding) + sep
 	left += base.Render(fmt.Sprintf("Ln %d, Col %d", m.line+1, m.col+1))
+	if m.flash != "" {
+		left += sep + lipgloss.NewStyle().Background(bg).Foreground(fg).Italic(true).Render(m.flash)
+	}
 
 	right := ""
 	if m.branch != "" {

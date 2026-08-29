@@ -58,6 +58,10 @@ func (m *Model) isQuickOpen(msg tea.KeyPressMsg) bool {
 	return m.cfg.Keybindings.Match(msg, config.ActionQuickOpen)
 }
 
+func (m *Model) isCommandPalette(msg tea.KeyPressMsg) bool {
+	return m.cfg.Keybindings.Match(msg, config.ActionCommandPalette)
+}
+
 func (m *Model) isGoToLine(msg tea.KeyPressMsg) bool {
 	return m.cfg.Keybindings.Match(msg, config.ActionGoToLine)
 }

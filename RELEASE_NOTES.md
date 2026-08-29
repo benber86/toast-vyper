@@ -1,5 +1,22 @@
 # Release Notes
 
+## v0.9.0 — 2026-08-29
+
+The command palette (issue #26) — `Ctrl+Shift+P` fuzzy search over every editor action — with keybinding hints, live toggle-state pills, MRU ordering, a rotating-tips footer, and a status-bar confirmation flash.
+
+### Command palette
+- `Ctrl+Shift+P` opens a fuzzy-search palette over every editor action: type to filter by label or category, arrows to navigate, Enter to run, Escape to dismiss. The selected command's description shows beneath the list, and a rotating tips footer cycles on each open.
+- Rows show each command's keybinding hint (right-aligned) and a live `●on` / `○off` pill for toggle commands (e.g. sidebar, markdown preview), tracked through the settings state at open time.
+- Results are ordered most-recently-used-first on an empty query, with fuzzy score, usage, then label as tie-breakers once you type.
+- The overlay gets an accent-glow border in the theme's `find_replace_border` accent (purple in the builtin themes), shifts to the accent color when the palette locks onto a single result, and the page behind it is faint-dimmed; the footer tips render in a new `muted` secondary-text token for legibility.
+- Choosing a command flashes a branded confirmation in the status bar (`⌄ Saved main.go`, ~1.5 s), and when a command has a keybinding you could have pressed instead, a coach nudge shows it (`⌄ next time: ctrl+s`).
+- App-level key dispatch was refactored into `runAction` keyed by `config.Action*` IDs — keybinding cases delegate to it with no behavior change — and a shared fuzzy matcher was extracted into `internal/fuzzy` so quick-open and the palette score identically. The palette also gains a Theme Picker action.
+
+### Docs & misc
+- README: command palette feature bullet, `Ctrl+Shift+P` in the keybinding table, and `command_palette` / `theme_picker` added to the available-actions list.
+
+---
+
 ## v0.8.2 — 2026-08-29
 
 Auto-save now writes files verbatim — intentional trailing spaces (e.g. markdown hard line breaks) survive background saves, and only an explicit ctrl+s applies the configured trim — and cursor positioning correctly handles multi-cell emoji. The README also gains a features/trade-offs comparison table.

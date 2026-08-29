@@ -374,3 +374,21 @@ type OpenExternalFileMsg struct{ Path string }
 // RevealInFileManagerMsg - reveal a file/folder in the OS file manager
 // (Finder on macOS, the default file manager on Linux, Explorer on Windows).
 type RevealInFileManagerMsg struct{ Path string }
+
+// CommandPaletteOpenMsg - open the command palette overlay (Ctrl+Shift+P).
+type CommandPaletteOpenMsg struct{}
+
+// CommandPaletteCloseMsg - close the command palette overlay.
+type CommandPaletteCloseMsg struct{}
+
+// CommandPaletteSelectMsg - user picked a command in the palette; ActionID is
+// a config.Action* identifier, Label is the displayed name (used for the
+// statusbar confirmation flash).
+type CommandPaletteSelectMsg struct {
+	ActionID string
+	Label    string
+}
+
+// StatusFlashClearMsg - clears the statusbar's transient confirmation flash
+// (fired by a timer after a palette command executes).
+type StatusFlashClearMsg struct{}

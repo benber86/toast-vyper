@@ -17,6 +17,23 @@ func newTestModel() Model {
 	return updated.(Model)
 }
 
+func TestFlash_SetAndClear(t *testing.T) {
+	m := newTestModel()
+	if got := m.View().Content; strings.Contains(got, "✓") {
+		t.Fatal("expected no flash initially")
+	}
+
+	m.SetFlash("✓ Saved — next time: ctrl+s")
+	if got := m.View().Content; !strings.Contains(got, "✓ Saved") {
+		t.Fatalf("expected flash text in view, got %q", got)
+	}
+
+	m.ClearFlash()
+	if got := m.View().Content; strings.Contains(got, "✓ Saved") {
+		t.Fatalf("expected flash cleared, got %q", got)
+	}
+}
+
 func TestThemeButton_ClickEmitsOpenMsg(t *testing.T) {
 	m := newTestModel()
 	// The theme button is on the right side of the statusbar.

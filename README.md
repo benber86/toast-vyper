@@ -35,6 +35,7 @@ toast is a beautiful developer environment right in your terminal. vim, nvim, an
 - **File tree sidebar** with git status, ignored-file dimming, create/delete actions, file watching, and draggable resizing
 - **Project-wide search** powered by `rg` (ripgrep)
 - **In-file find/replace** with next/previous navigation, match-case, and whole-word options
+- **Command palette** — `Ctrl+Shift+P` fuzzy search over every action, with keybinding hints, live toggle state, MRU ordering, and a status-bar confirmation flash
 - **Markdown preview** for `.md`, `.markdown`, and `.mdx` files
 - **Theme system** — built-in `system` (derived from terminal colors at runtime), `toast-dark`, and `toast-light`, plus a VSCode theme importer
 - **Auto-save** — dirty files are written to disk after a configurable inactivity delay (default 300 ms), with an optional manual-save mode
@@ -133,6 +134,7 @@ All keybindings can be remapped in `~/.config/toast/config.json` (see [Configura
 | `Ctrl+S` / `Cmd+S` | Save |
 | `Ctrl+W` / `Cmd+W` | Close tab |
 | `Ctrl+P` | Quick-open file search (fuzzy) |
+| `Ctrl+Shift+P` / `Cmd+Shift+P` | Command palette |
 | `Ctrl+Alt+Right` | Next tab |
 | `Ctrl+Alt+Left` | Previous tab |
 | `Ctrl+B` | Toggle sidebar |
@@ -197,7 +199,7 @@ All default keybindings can be overridden with the `keybindings` object. Each ac
 }
 ```
 
-Available actions: `quit`, `toggle_sidebar`, `save`, `new_file`, `close_tab`, `undo`, `redo`, `next_tab`, `prev_tab`, `search`, `find_replace`, `quick_open`, `go_to_line`, `go_to_definition`, `toggle_focus`, `markdown_preview`, `show_hover`, `trigger_completion`.
+Available actions: `quit`, `toggle_sidebar`, `save`, `new_file`, `close_tab`, `undo`, `redo`, `next_tab`, `prev_tab`, `search`, `find_replace`, `quick_open`, `command_palette`, `theme_picker`, `go_to_line`, `go_to_definition`, `toggle_focus`, `markdown_preview`, `show_hover`, `trigger_completion`.
 
 Omit `lsp` to use Toast's managed defaults for Go, Rust, Python, JavaScript, TypeScript, and Markdown; set `"lsp": {}` to disable all language servers. Entries in `lsp` override the managed default for that language, while unlisted managed languages keep their defaults — so a partial config never loses newly shipped servers. Each entry is extension-driven, so other languages can be added without changing Toast. A custom server already installed on `$PATH` only needs a command and its filename suffixes:
 

@@ -12,13 +12,14 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/yourusername/toast/internal/fuzzy"
 	"github.com/yourusername/toast/internal/messages"
 	"github.com/yourusername/toast/internal/theme"
 )
 
 const (
 	overlayWidth     = 60
-	overlayMinHeight = 6  // border + input + separator + summary + border + padding
+	overlayMinHeight = 6 // border + input + separator + summary + border + padding
 	overlayMaxHeight = 24
 	maxDisplayItems  = 18
 	maxFiles         = 10000 // cap to avoid memory issues
@@ -422,54 +423,6 @@ func (m Model) loadFiles() tea.Cmd {
 
 // ── Fuzzy matching ────────────────────────────────────────────────────────────
 
-// fuzzyMatchScore returns true with a score if query matches target (case-insensitive).
-// Characters in query must appear in order within target. The score favours
-// consecutive matches, matches after separators, and matches at word boundaries.
-func fuzzyMatchScore(target, query string) (bool, int) {
-	if query == "" {
-		return true, 0
-	}
-
-	targetLower := strings.ToLower(target)
-	queryLower := strings.ToLower(query)
-
-	qi := 0
-	score := 0
-	lastMatch := -2 // ensure first match doesn't get a consecutive bonus
-
-	for si := 0; si < len(targetLower) && qi < len(queryLower); si++ {
-		if targetLower[si] == queryLower[qi] {
-			// Consecutive match bonus
-			if si == lastMatch+1 {
-				score += 8
-			}
-			// Match after path separator bonus
-			if si == 0 || targetLower[si-1] == '/' || targetLower[si-1] == '\\' {
-				score += 12
-			}
-			// Word boundary bonus (separator chars)
-			if si > 0 && (targetLower[si-1] == '_' || targetLower[si-1] == '-' ||
-				targetLower[si-1] == '.' || targetLower[si-1] == ' ' ||
-				targetLower[si-1] == '(' || targetLower[si-1] == '[') {
-				score += 8
-			}
-			// Uppercase in camelCase bonus (only applies when query is lowercase
-			// but target has uppercase at this position)
-			if target[si] >= 'A' && target[si] <= 'Z' && queryLower[qi] == query[qi] {
-				score += 6
-			}
-			score += 1
-			qi++
-			lastMatch = si
-		}
-	}
-
-	if qi == len(queryLower) {
-		return true, score
-	}
-	return false, 0
-}
-
 // filterResults updates m.results by fuzzy-matching m.query.Value() against all
 // project files. Results are sorted by descending score (best match first).
 func (m *Model) filterResults() {
@@ -493,7 +446,7 @@ func (m *Model) filterResults() {
 
 	var scoredResults []scored
 	for _, file := range m.files {
-		if ok, score := fuzzyMatchScore(file.RelativePath, query); ok {
+		if ok, score := fuzzy.MatchScore(file.RelativePath, query); ok {
 			scoredResults = append(scoredResults, scored{item: file, score: score})
 		}
 	}

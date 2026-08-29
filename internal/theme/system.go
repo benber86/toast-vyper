@@ -31,6 +31,7 @@ func newSystemTheme(isDark bool) *Theme {
 			"statusbar_bg": "", "statusbar_fg": "",
 			"breadcrumbs_fg": "", "breadcrumbs_active_fg": "",
 			"gutter_fg": "", "gutter_active_fg": "",
+			"muted":            "",
 			"diagnostic_error": "1", "diagnostic_warning": "3",
 			"diagnostic_info": "4", "diagnostic_hint": "2",
 			"completion_bg": "", "completion_fg": "", "completion_selected": "",
@@ -95,6 +96,7 @@ func (m *Manager) applySystemBaseColors() {
 	m.theme.UI["sidebar_selected_fg"] = fg
 	m.theme.UI["statusbar_bg"] = surface
 	m.theme.UI["statusbar_fg"] = mutedStrong
+	m.theme.UI["muted"] = muted
 	m.theme.UI["breadcrumbs_fg"] = muted
 	m.theme.UI["breadcrumbs_active_fg"] = fg
 	m.theme.UI["gutter_fg"] = muted

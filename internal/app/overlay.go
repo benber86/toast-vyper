@@ -7,6 +7,20 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
+// dimContent faint-renders every non-empty line so the page behind the
+// command palette recedes. Existing ANSI within a line is preserved: lipgloss
+// wraps the already-styled text in a faint SGR pair.
+func dimContent(content string) string {
+	lines := strings.Split(content, "\n")
+	for i, l := range lines {
+		if l == "" {
+			continue
+		}
+		lines[i] = lipgloss.NewStyle().Faint(true).Render(l)
+	}
+	return strings.Join(lines, "\n")
+}
+
 // overlayAt composites overlay over base, anchored at (x, y).
 // The position is clamped so the overlay never extends beyond totalWidth/totalHeight.
 func overlayAt(base, overlay string, x, y, totalWidth, totalHeight int) string {
