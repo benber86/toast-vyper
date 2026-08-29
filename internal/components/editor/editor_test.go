@@ -1185,6 +1185,60 @@ func TestSave_EmitsFileSavedMsg(t *testing.T) {
 	}
 }
 
+// ── Auto-save writes verbatim; explicit save applies transforms (issue #56) ──
+
+// Regression test for issue #56: auto-save (SaveBufferMsg) must write the buffer
+// verbatim — trailing spaces and a missing final newline survive — while an
+// explicit ctrl+s still applies the configured trim/final-newline transforms.
+func TestAutoSaveSaveBufferMsg_PreservesTrailingWhitespace(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "notes.md")
+	if err := os.WriteFile(path, []byte("line one  \n"), 0644); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	m := newTestModelWithPath("line one  \nline two", path, 1)
+	m.cfg.Editor.TrimTrailingWhitespaceOnSave = true
+	m.cfg.Editor.InsertFinalNewlineOnSave = true
+
+	runSaveCmd := func(t *testing.T, cmd tea.Cmd) {
+		t.Helper()
+		if cmd == nil {
+			t.Fatal("expected non-nil save command")
+		}
+		result := cmd()
+		batch, ok := result.(tea.BatchMsg)
+		if !ok {
+			t.Fatalf("expected tea.BatchMsg from save, got %T", result)
+		}
+		for _, c := range batch {
+			c()
+		}
+	}
+
+	// Auto-save request: buffer content must reach disk untouched.
+	updated, autoCmd := m.Update(messages.SaveBufferMsg{BufferID: 1, Path: path})
+	m = updated.(Model)
+	runSaveCmd(t, autoCmd)
+	if got, _ := os.ReadFile(path); string(got) != "line one  \nline two" {
+		t.Fatalf("auto-save must write verbatim (trailing spaces + no final newline), got %q", got)
+	}
+	if m.buf.String() != "line one  \nline two" {
+		t.Fatalf("auto-save must not replace the buffer, got %q", m.buf.String())
+	}
+	if m.buf.Modified() {
+		t.Fatal("expected buffer clean after auto-save")
+	}
+
+	// Explicit ctrl+s: trim trailing whitespace and insert final newline.
+	updated, manualCmd := m.Update(tea.KeyPressMsg{Code: 's', Mod: tea.ModCtrl})
+	m = updated.(Model)
+	runSaveCmd(t, manualCmd)
+	if got, _ := os.ReadFile(path); string(got) != "line one\nline two\n" {
+		t.Fatalf("explicit save must trim + add final newline, got %q", got)
+	}
+}
+
 // ── Cursor clamping after save-time buffer replacement ──────────────────────
 
 // Regression test for the "slice bounds out of range [:6] with length 1" panic:

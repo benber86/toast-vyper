@@ -2,7 +2,6 @@ package editor
 
 import (
 	"strings"
-	"unicode/utf8"
 )
 
 // nonWrapChunks is the immutable single chunk returned by lineChunks in
@@ -140,29 +139,29 @@ func wordWrapChunks(line string, width int) []int {
 // width. Breaking occurs at the last ASCII space before the width limit; if no
 // space exists in the chunk, the break falls back to the column boundary.
 //
-// The implementation is O(len(line)): it precomputes each rune boundary's
-// absolute display column in a single forward pass, then walks boundaries with
-// O(1) width lookups. It never re-decodes the line from byte 0 and avoids the
-// per-rune string allocation (`len(string(r))`) of the previous version, which
-// made it O(n²) in the line length with one allocation per rune.
+// The implementation is O(len(line)): it precomputes each grapheme-cluster
+// boundary's absolute display column in a single forward pass, then walks
+// boundaries with O(1) width lookups. It never re-decodes the line from byte 0
+// and avoids the per-rune string allocation (`len(string(r))`) of an earlier
+// version, which made it O(n²) in the line length with one allocation per rune.
 //
 // Display columns are absolute (tab stops computed from byte 0 of the line),
 // matching displayColumnAtByte and the rendering path so that wrap chunks and
 // rendered tab expansion stay consistent.
 func wordWrapChunksWithTabWidth(line string, width, tabWidth int) []int {
-	// offs[k] = byte offset of the k-th rune; offs[total] == len(line).
+	// offs[k] = byte offset of the k-th cluster; offs[total] == len(line).
 	// cols[k] = absolute display column (tab-expanded) at byte offs[k].
 	offs := make([]int, 1, len(line)+1)
 	cols := make([]int, 1, len(line)+1)
 	absCol := 0
 	for i := 0; i < len(line); {
-		r, size := utf8.DecodeRuneInString(line[i:])
-		absCol = nextDisplayColumn(absCol, r, tabWidth)
-		i += size
+		cluster, _ := firstGraphemeClusterWidth(line[i:])
+		absCol = nextDisplayColumn(absCol, cluster, tabWidth)
+		i += len(cluster)
 		offs = append(offs, i)
 		cols = append(cols, absCol)
 	}
-	total := len(offs) - 1 // number of runes
+	total := len(offs) - 1 // number of clusters
 
 	chunks := []int{0}
 	startIdx := 0

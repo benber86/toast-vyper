@@ -199,6 +199,8 @@ func TestAutoSave_SavesDirtyBackgroundSnapshots(t *testing.T) {
 	openFile(t, m, fileA)
 
 	// Edit A, then switch to B — A becomes a dirty background snapshot.
+	// Auto-save writes the buffer verbatim: no final newline is inserted and
+	// no trailing whitespace is trimmed (issue #56).
 	_ = typeKey(m, 'x')
 	openFile(t, m, fileB)
 
@@ -206,8 +208,8 @@ func TestAutoSave_SavesDirtyBackgroundSnapshots(t *testing.T) {
 	m = updated.(*Model)
 	_ = collectAppCmdMessages(t, saveCmd)
 
-	if content, _ := os.ReadFile(fileA); string(content) != "xone\n" {
-		t.Fatalf("background file A after auto-save = %q, want %q", content, "xone\n")
+	if content, _ := os.ReadFile(fileA); string(content) != "xone" {
+		t.Fatalf("background file A after auto-save = %q, want %q (verbatim, no final newline)", content, "xone")
 	}
 	if content, _ := os.ReadFile(fileB); string(content) != "two" {
 		t.Fatalf("clean file B must not be rewritten, got %q", content)
@@ -248,5 +250,41 @@ func TestAutoSave_SavesViaKeybindingInManualMode(t *testing.T) {
 	}
 	if content, _ := os.ReadFile(path); string(content) != "xpackage main\n" {
 		t.Fatalf("file content after manual save = %q", content)
+	}
+}
+
+// Regression test for issue #56: auto-save must write the active buffer verbatim
+// so intentional trailing spaces (e.g. markdown hard line breaks) survive even
+// with trim_trailing_whitespace_on_save enabled. Only an explicit ctrl+s applies
+// the configured trim.
+func TestAutoSave_PreservesTrailingSpacesOnDisk(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "notes.md")
+	const content = "line one  \nline two\n" // two trailing spaces on line one
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	m := newTestApp(t, dir)
+	m.cfg.Editor.AutoSaveDelayMs = 1
+	openFile(t, m, path)
+
+	// Dirty the buffer (typing at the start), then fire the auto-save tick.
+	_ = typeKey(m, '!')
+	updated, saveCmd := m.Update(messages.AutoSaveTickMsg{Generation: m.autoSaveGen})
+	m = updated.(*Model)
+	_ = collectAppCmdMessages(t, saveCmd)
+
+	if got, _ := os.ReadFile(path); string(got) != "!line one  \nline two\n" {
+		t.Fatalf("auto-save must write verbatim (trailing spaces preserved), got %q", got)
+	}
+	if m.editor.IsModified() {
+		t.Fatal("expected buffer clean after auto-save")
+	}
+
+	// An explicit ctrl+s still applies trim_trailing_whitespace_on_save.
+	cmd := m.handleKey(tea.KeyPressMsg{Code: 's', Mod: tea.ModCtrl})
+	_ = collectAppCmdMessages(t, cmd)
+	if got, _ := os.ReadFile(path); string(got) != "!line one\nline two\n" {
+		t.Fatalf("explicit save must trim trailing whitespace, got %q", got)
 	}
 }

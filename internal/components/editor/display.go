@@ -2,9 +2,8 @@ package editor
 
 import (
 	"strings"
-	"unicode/utf8"
 
-	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
 const defaultTabWidth = 4
@@ -16,24 +15,43 @@ func normalizedTabWidth(width int) int {
 	return width
 }
 
-func nextDisplayColumn(column int, r rune, tabWidth int) int {
-	if r == '\t' {
+// firstGraphemeClusterWidth returns the first grapheme cluster of s and its
+// display width in cells. Clusters are measured the way a terminal renders
+// them: an emoji with a variation selector or a ZWJ sequence (e.g. "⚠️") is a
+// single cluster occupying two cells. Per-rune width would count "⚠" plus the
+// zero-width variation selector as one cell, leaving every following position
+// (cursor, mouse clicks, viewport) off by one.
+func firstGraphemeClusterWidth(s string) (string, int) {
+	if s == "" {
+		return "", 0
+	}
+	return ansi.FirstGraphemeCluster(s, ansi.GraphemeWidth)
+}
+
+// nextDisplayColumn returns the display column after a grapheme cluster,
+// expanding tabs to the next tab stop.
+func nextDisplayColumn(column int, cluster string, tabWidth int) int {
+	if cluster == "\t" {
 		tabWidth = normalizedTabWidth(tabWidth)
 		return column + tabWidth - column%tabWidth
 	}
-	return column + lipgloss.Width(string(r))
+	return column + ansi.StringWidth(cluster)
 }
 
 func displayColumnAtByte(text string, byteCol, tabWidth int) int {
 	byteCol = clampByteCol(text, byteCol)
 	column := 0
 	for offset := 0; offset < byteCol; {
-		r, size := utf8.DecodeRuneInString(text[offset:])
-		if offset+size > byteCol {
+		cluster, _ := firstGraphemeClusterWidth(text[offset:])
+		next := offset + len(cluster)
+		if next > byteCol {
+			// byteCol cuts inside a grapheme cluster (e.g. between a base rune
+			// and its variation selector). The cluster is one atomic glyph, so
+			// its width applies only at or after `next`.
 			break
 		}
-		column = nextDisplayColumn(column, r, tabWidth)
-		offset += size
+		column = nextDisplayColumn(column, cluster, tabWidth)
+		offset = next
 	}
 	return column
 }
@@ -48,7 +66,7 @@ func displayWidthForByteRange(text string, start, end, tabWidth int) int {
 }
 
 // byteColForDisplayOffset maps an offset from start's display column back to
-// a byte boundary. Cells occupied by a wide rune or expanded tab map to the
+// a byte boundary. Cells occupied by a wide cluster or expanded tab map to the
 // position before that character; its right boundary maps after it.
 func byteColForDisplayOffset(text string, start, displayOffset, tabWidth int) int {
 	start = clampByteCol(text, start)
@@ -59,9 +77,9 @@ func byteColForDisplayOffset(text string, start, displayOffset, tabWidth int) in
 	column := displayColumnAtByte(text, start, tabWidth)
 	previous := start
 	for offset := start; offset < len(text); {
-		r, size := utf8.DecodeRuneInString(text[offset:])
-		next := offset + size
-		nextColumn := nextDisplayColumn(column, r, tabWidth)
+		cluster, _ := firstGraphemeClusterWidth(text[offset:])
+		next := offset + len(cluster)
+		nextColumn := nextDisplayColumn(column, cluster, tabWidth)
 		if nextColumn > target {
 			return previous
 		}
@@ -76,17 +94,17 @@ func byteColForDisplayOffset(text string, start, displayOffset, tabWidth int) in
 }
 
 // byteColAtOrAfterDisplayColumn finds a safe horizontal viewport boundary.
-// When the requested column falls inside a tab or wide rune, it advances past
-// that character so the cursor is guaranteed to become visible.
+// When the requested column falls inside a tab or wide cluster, it advances
+// past that character so the cursor is guaranteed to become visible.
 func byteColAtOrAfterDisplayColumn(text string, target, tabWidth int) int {
 	if target <= 0 {
 		return 0
 	}
 	column := 0
 	for offset := 0; offset < len(text); {
-		r, size := utf8.DecodeRuneInString(text[offset:])
-		next := offset + size
-		nextColumn := nextDisplayColumn(column, r, tabWidth)
+		cluster, _ := firstGraphemeClusterWidth(text[offset:])
+		next := offset + len(cluster)
+		nextColumn := nextDisplayColumn(column, cluster, tabWidth)
 		if column >= target {
 			return offset
 		}
@@ -105,15 +123,17 @@ func expandTabs(text string, startColumn, tabWidth int) string {
 	}
 	var out strings.Builder
 	column := startColumn
-	for _, r := range text {
-		if r == '\t' {
-			next := nextDisplayColumn(column, r, tabWidth)
+	for offset := 0; offset < len(text); {
+		cluster, _ := firstGraphemeClusterWidth(text[offset:])
+		if cluster == "\t" {
+			next := nextDisplayColumn(column, cluster, tabWidth)
 			out.WriteString(strings.Repeat(" ", next-column))
 			column = next
-			continue
+		} else {
+			out.WriteString(cluster)
+			column = nextDisplayColumn(column, cluster, tabWidth)
 		}
-		out.WriteRune(r)
-		column = nextDisplayColumn(column, r, tabWidth)
+		offset += len(cluster)
 	}
 	return out.String()
 }

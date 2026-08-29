@@ -133,12 +133,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.buf != nil {
 			preModified = m.buf.Modified()
 		}
-		saveCmd := m.save()
+		// Auto-save persistence writes the buffer verbatim — it must never strip
+		// trailing spaces or rewrite the user's content (issue #56).
+		saveCmd := m.saveVerbatim()
 		if saveCmd == nil {
 			return m, nil
 		}
-		// save() calls buf.MarkSaved() synchronously, so emit Modified=false to
-		// clear the dirty indicator, matching the ctrl+s handler.
+		// saveVerbatim() calls buf.MarkSaved() synchronously, so emit Modified=false
+		// to clear the dirty indicator, matching the ctrl+s handler.
 		if preModified {
 			return m, tea.Batch(saveCmd, m.emitModified())
 		}
@@ -401,18 +403,22 @@ func (s BufferSnapshot) Modified() bool {
 }
 
 // SaveToDisk writes the snapshot's buffer content to disk and marks it saved.
-// It respects the same whitespace/newline settings as the editor's own save.
-func (s *BufferSnapshot) SaveToDisk(bufferID int, path string, cfg config.Config) tea.Cmd {
+// When applyTransforms is true (explicit saves such as save-on-quit) it applies
+// the configured trailing-whitespace trim and final-newline insertion; auto-save
+// passes false so background persistence writes the buffer verbatim (issue #56).
+func (s *BufferSnapshot) SaveToDisk(bufferID int, path string, cfg config.Config, applyTransforms bool) tea.Cmd {
 	if s.buf == nil || path == "" {
 		return nil
 	}
 	content := s.buf.String()
-	if cfg.Editor.TrimTrailingWhitespaceOnSave {
-		content = trimTrailingWhitespace(content)
-	}
-	if cfg.Editor.InsertFinalNewlineOnSave {
-		if !strings.HasSuffix(content, "\n") {
-			content += "\n"
+	if applyTransforms {
+		if cfg.Editor.TrimTrailingWhitespaceOnSave {
+			content = trimTrailingWhitespace(content)
+		}
+		if cfg.Editor.InsertFinalNewlineOnSave {
+			if !strings.HasSuffix(content, "\n") {
+				content += "\n"
+			}
 		}
 	}
 	if content != s.buf.String() {
@@ -1563,20 +1569,34 @@ func (m *Model) deleteForward() {
 	}
 }
 
-// save writes the current buffer to disk, optionally trimming trailing whitespace
-// and inserting a final newline.
+// save writes the current buffer to disk, applying the configured
+// trailing-whitespace trim and final-newline insertion. Used for explicit saves
+// (ctrl+s and save-on-quit).
 func (m *Model) save() tea.Cmd {
+	return m.saveInternal(true)
+}
+
+// saveVerbatim writes the current buffer to disk exactly as-is. Background
+// auto-save persistence must never rewrite the user's content, so trailing
+// spaces and a missing final newline are preserved (issue #56).
+func (m *Model) saveVerbatim() tea.Cmd {
+	return m.saveInternal(false)
+}
+
+func (m *Model) saveInternal(applyTransforms bool) tea.Cmd {
 	if m.path == "" || m.buf == nil || m.cannotDisplayFile() {
 		return nil
 	}
 	content := m.buf.String()
 
-	if m.cfg.Editor.TrimTrailingWhitespaceOnSave {
-		content = trimTrailingWhitespace(content)
-	}
-	if m.cfg.Editor.InsertFinalNewlineOnSave {
-		if !strings.HasSuffix(content, "\n") {
-			content += "\n"
+	if applyTransforms {
+		if m.cfg.Editor.TrimTrailingWhitespaceOnSave {
+			content = trimTrailingWhitespace(content)
+		}
+		if m.cfg.Editor.InsertFinalNewlineOnSave {
+			if !strings.HasSuffix(content, "\n") {
+				content += "\n"
+			}
 		}
 	}
 

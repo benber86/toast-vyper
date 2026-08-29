@@ -719,7 +719,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			for bufID, snap := range m.bufferSnapshots {
 				if snap.Modified() {
-					saveCmd := snap.SaveToDisk(bufID, snap.Path, m.cfg)
+					saveCmd := snap.SaveToDisk(bufID, snap.Path, m.cfg, true)
 					m.bufferSnapshots[bufID] = snap
 					if saveCmd != nil {
 						saveCmds = append(saveCmds, saveCmd)
@@ -728,7 +728,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			for path, snap := range m.closedSnapshots {
 				if snap.Modified() {
-					saveCmd := snap.SaveToDisk(0, path, m.cfg)
+					saveCmd := snap.SaveToDisk(0, path, m.cfg, true)
 					m.closedSnapshots[path] = snap
 					if saveCmd != nil {
 						saveCmds = append(saveCmds, saveCmd)
@@ -1851,7 +1851,7 @@ func (m *Model) autoSaveDirtyBuffers() []tea.Cmd {
 	}
 	for bufID, snap := range m.bufferSnapshots {
 		if snap.Modified() {
-			if saveCmd := snap.SaveToDisk(bufID, snap.Path, m.cfg); saveCmd != nil {
+			if saveCmd := snap.SaveToDisk(bufID, snap.Path, m.cfg, false); saveCmd != nil {
 				m.bufferSnapshots[bufID] = snap
 				cmds = append(cmds, saveCmd)
 			}

@@ -24,7 +24,7 @@ toast is a beautiful developer environment right in your terminal. vim, nvim, an
 tree, syntax highlighting, and mouse support built in. vim and emacs leave the
 file tree (and usable mouse support) to plugins and configuration.
 
-> ⚠️ This project is in _early development, you may encounter bugs. ⚠️
+> ⚠️ This project is in _early development_, you may encounter bugs. ⚠️
 
 <img src="toast-demo.gif" alt="toast logo" width="800" style="border-radius: 12px; display: block; margin: 20px 0;">
 

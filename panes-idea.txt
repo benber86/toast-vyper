@@ -1,0 +1,15 @@
+Direction — VS Code editor-group model: per-pane tab strips rendered inside each pane's column, keyboard split that duplicates the active file into the right pane
+ (shared buffer), pane management via per-pane ✕ / ctrl+alt+w, and drag-and-drop that moves tabs between panes. Includes the exact layout diagram so the geometry
+ (breadcrumb row 0, tab strips row 1, editors below) is unambiguous.
+
+ Key implementation decisions — explicit Pane fields on tab messages (a buffer can be tabbed in both panes), global buffer bookkeeping with closeBufferFully only when no
+ pane still tabs a buffer, shared EditBuffer ropes so edits never diverge-lose, and find/replace targeting the pane it opened in.
+
+
+Tabs
+ Rough edges & open questions — the duplicate-on-split vs move-on-drop inconsistency, the single snapshot slot for shared buffers (cursor divergence), the quit ✕
+ disappearing while split, deferred per-pane breadcrumbs, and tab reordering.
+wdwad
+wad
+mllm; What we'd plan differently — decide tab ownership (duplicated vs partitioned) up front, pin the layout before wiring mouse routing, and write the data-safety invariants
+ (shared ropes, when a buffer fully closes, where unsaved edits go) first — the two real bugs we hit came from not having those pinned down.
