@@ -12,17 +12,17 @@
 
 toast is a beautiful developer environment right in your terminal. vim, nvim, and emacs have you build your editor from scratch, while toast ships with managed LSPs, an integrated file tree, multiple file tabs, and themes out of the box. toast is for the developer who wants to stay in their terminal without spending hours getting it up to snuff.
 
-| Editor | No AI features | No telemetry | Built-in file tree | Built-in syntax highlighting | Mouse support |
-|--------|:---:|:---:|:---:|:---:|:---:|
-| **toast** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| vim | ✅ | ✅ | ❌ | ✅ | ❌ |
-| emacs | ✅ | ✅ | ❌ | ✅ | ❌ |
-| vscode | ❌ | ❌ | ✅ | ✅ | ✅ |
-| zed | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Editor | No AI features | No telemetry | Built-in file tree | Mouse support |
+|--------|:---:|:---:|:---:|:---:|
+| **toast** | ✅ | ✅ | ✅ | ✅ |
+| vim | ✅ | ✅ | ❌ | ❌ |
+| emacs | ✅ | ✅ | ❌ | ❌ |
+| vscode | ❌ | ❌ | ✅ | ✅ |
+| zed | ❌ | ❌ | ✅ | ✅ |
 
 > toast is the only one that checks all the boxes: no AI, no telemetry, and a
-tree, syntax highlighting, and mouse support built in. vim and emacs leave the
-file tree (and usable mouse support) to plugins and configuration.
+> file tree and mouse support built in. vim and emacs leave the file tree (and
+> usable mouse support) to plugins and configuration.
 
 > ⚠️ This project is in _early development_, you may encounter bugs. ⚠️
 
