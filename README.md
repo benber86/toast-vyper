@@ -12,6 +12,19 @@
 
 toast is a beautiful developer environment right in your terminal. vim, nvim, and emacs have you build your editor from scratch, while toast ships with managed LSPs, an integrated file tree, multiple file tabs, and themes out of the box. toast is for the developer who wants to stay in their terminal without spending hours getting it up to snuff.
 
+> ⚠️ This project is in _early development_, you may encounter bugs. ⚠️
+
+<img src="toast-demo.gif" alt="toast logo" width="800" style="border-radius: 12px; display: block; margin: 20px 0;">
+
+
+## Quick Install
+```bash
+brew install paradise-runner/tap/toast
+```
+
+
+## Features
+
 | Editor | No AI features | No telemetry | Built-in file tree | Mouse support |
 |--------|:---:|:---:|:---:|:---:|
 | **toast** | ✅ | ✅ | ✅ | ✅ |
@@ -20,12 +33,6 @@ toast is a beautiful developer environment right in your terminal. vim, nvim, an
 | vscode | ❌ | ❌ | ✅ | ✅ |
 | zed | ❌ | ❌ | ✅ | ✅ |
 
-> ⚠️ This project is in _early development_, you may encounter bugs. ⚠️
-
-<img src="toast-demo.gif" alt="toast logo" width="800" style="border-radius: 12px; display: block; margin: 20px 0;">
-
-
-## Features
 
 - **Multi-tab editing** with unsaved-changes indicators, mouse-close buttons, and quit confirmation
 - **Syntax highlighting** via tree-sitter (Go, Python, JavaScript, TypeScript, Rust, CSS, HTML, YAML, Bash, Markdown)
