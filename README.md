@@ -93,19 +93,11 @@ mv Toast.app /Applications/
 > on. Or clear the quarantine flag once:
 > `xattr -dr com.apple.quarantine /Applications/Toast.app`
 
-Launch Toast like any app — from Launchpad, Spotlight, or the Finder. It opens
-on a blank editor where you can pick a folder with the **Select Workspace**
-button or the **File › Open Folder…** menu item. To open a specific file or
-directory from the command line:
 
 ```bash
 open -a Toast ~/src/foo.go
 open -a Toast ~/src/myproject
 ```
-
-You can also drop a file or folder onto the app's dock icon. See
-[docs/experimental/libghostty-bundle.md](docs/experimental/libghostty-bundle.md)
-for how the app works and its current limitations.
 
 **Build from source**
 
@@ -128,8 +120,6 @@ toast new/file.go   # open a new file buffer if the parent directory exists
 toast --help
 toast --version
 ```
-
-`rg` is required for project search. When a built-in language server is missing, Toast shows an install prompt in the lower-right corner. Managed installs use the language's standard toolchain (`go`, `npm`, or `rustup`) or download a prebuilt binary (harper), and only run after you accept the prompt. Toast also uses compatible servers already on your `$PATH`.
 
 ## Keybindings
 
@@ -208,7 +198,7 @@ All default keybindings can be overridden with the `keybindings` object. Each ac
 
 Available actions: `quit`, `toggle_sidebar`, `save`, `new_file`, `close_tab`, `undo`, `redo`, `next_tab`, `prev_tab`, `search`, `find_replace`, `quick_open`, `command_palette`, `theme_picker`, `go_to_line`, `go_to_definition`, `toggle_focus`, `markdown_preview`, `show_hover`, `trigger_completion`.
 
-Omit `lsp` to use Toast's managed defaults for Go, Rust, Python, JavaScript, TypeScript, and Markdown; set `"lsp": {}` to disable all language servers. Entries in `lsp` override the managed default for that language, while unlisted managed languages keep their defaults — so a partial config never loses newly shipped servers. Each entry is extension-driven, so other languages can be added without changing Toast. A custom server already installed on `$PATH` only needs a command and its filename suffixes:
+Omit `lsp` to use Toast's managed defaults for Go, Rust, Python, JavaScript, TypeScript, and Markdown; set `"lsp": {}` to disable all language servers. 
 
 ```json
 {
@@ -217,48 +207,6 @@ Omit `lsp` to use Toast's managed defaults for Go, Rust, Python, JavaScript, Typ
       "command": "zls",
       "args": [],
       "extensions": [".zig"]
-    }
-  }
-}
-```
-
-For an opt-in managed custom server, add `managed_command` (the installed executable path) and an `install` recipe. Recipes support `{install_dir}`, `{install_root}`, `{root_dir}`, `{home}`, and `{target}` (the platform's Rust target triple, for per-platform prebuilt binaries) placeholders:
-
-```json
-{
-  "lsp": {
-    "example": {
-      "command": "example-language-server",
-      "args": ["--stdio"],
-      "extensions": [".example"],
-      "managed_command": "{install_dir}/bin/example-language-server",
-      "install": {
-        "name": "Example Language Server",
-        "command": "example-package-manager",
-        "args": ["install", "--bin-dir", "{install_dir}/bin", "example-language-server"],
-        "env": {}
-      }
-    }
-  }
-}
-```
-
-Alternatively, an `install` recipe can download a prebuilt binary archive. The archive must contain a single executable file at its root (a wrapping top-level directory is tolerated); it is installed to `{install_dir}/bin`:
-
-```json
-{
-  "lsp": {
-    "example": {
-      "command": "example-language-server",
-      "args": ["--stdio"],
-      "extensions": [".example"],
-      "managed_command": "{install_dir}/bin/example-language-server",
-      "install": {
-        "name": "Example Language Server",
-        "download": {
-          "url": "https://github.com/org/example/releases/latest/download/example-ls-{target}.tar.gz"
-        }
-      }
     }
   }
 }
