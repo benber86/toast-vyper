@@ -1,240 +1,71 @@
+# Toast with Vyper highlighting
 
-<div align="center">
+A modified build of [Toast](https://github.com/paradise-runner/toast) with
+Tree-sitter syntax highlighting for Vyper contract (`.vy`) and interface (`.vyi`)
+files. Highlighting activates automatically when you open either file type.
 
-<h1>
-<img width="200" alt="prek" src="toast-logo.png" />
+Supports decorators, built-in types, functions, events, structs, flags, module
+bindings, typed loops, `log`, `extcall`, and `staticcall`, using Toast's existing
+themes. This adds syntax highlighting; it does not add a Vyper language server.
 
-# toast
+## Install
 
-</h1>
-</div>
+Toast embeds its grammars and highlight queries at build time. Build this
+repository to use Vyper highlighting; there is no highlighter file to install
+into an existing Toast binary. Upstream Homebrew packages do not include this
+change.
 
+Prerequisites: Git, Go 1.25.2 or newer, Make, and a C compiler (GCC or Clang).
+On macOS, the Xcode Command Line Tools supply Make and Clang. Node.js and the
+Tree-sitter CLI are not needed for an ordinary build.
 
-toast is a beautiful developer environment right in your terminal. vim, nvim, and emacs have you build your editor from scratch, while toast ships with managed LSPs, an integrated file tree, multiple file tabs, and themes out of the box. toast is for the developer who wants to stay in their terminal without spending hours getting it up to snuff.
-
-> ⚠️ This project is in _early development_, you may encounter bugs. ⚠️
-
-<img src="toast-demo.gif" alt="toast logo" width="800" style="border-radius: 12px; display: block; margin: 20px 0;">
-
-
-## Quick Install
-```bash
-brew install paradise-runner/tap/toast
-```
-
-
-## Features
-
-| Editor | No AI features | No telemetry | Built-in file tree | Mouse support |
-|--------|:---:|:---:|:---:|:---:|
-| **toast** | ✅ | ✅ | ✅ | ✅ |
-| vim | ✅ | ✅ | ❌ | ❌ |
-| emacs | ✅ | ✅ | ❌ | ❌ |
-| vscode | ❌ | ❌ | ✅ | ✅ |
-| zed | ❌ | ❌ | ✅ | ✅ |
-
-
-- **Multi-tab editing** with unsaved-changes indicators, mouse-close buttons, and quit confirmation
-- **Syntax highlighting** via tree-sitter (Go, Python, JavaScript, TypeScript, Rust, CSS, HTML, YAML, Bash, Markdown)
-- **Managed language servers** — Toast offers to install missing servers for Go, Rust, Python, JavaScript, TypeScript, and Markdown (harper), with an extensible config for other languages
-- **Spell checking** — misspelled words in Markdown and plain-text files are underlined in the theme's diagnostic color via harper
-- **Go to definition** — hold `Ctrl` and hover to underline symbols with a target, then `Ctrl`-click to jump to the exact definition
-- **File tree sidebar** with git status, ignored-file dimming, create/delete actions, file watching, and draggable resizing
-- **Project-wide search** powered by `rg` (ripgrep)
-- **In-file find/replace** with next/previous navigation, match-case, and whole-word options
-- **Command palette** — `Ctrl+Shift+P` fuzzy search over every action, with keybinding hints, live toggle state, MRU ordering, and a status-bar confirmation flash
-- **Markdown preview** for `.md`, `.markdown`, and `.mdx` files
-- **Theme system** — built-in `system` (derived from terminal colors at runtime), `toast-dark`, and `toast-light`, plus a VSCode theme importer
-- **Auto-save** — dirty files are written to disk after a configurable inactivity delay (default 300 ms), with an optional manual-save mode
-- **Configurable** via `~/.config/toast/config.json`
-
-## Installation
-
-**Homebrew (macOS)**
-
-```bash
-brew install paradise-runner/tap/toast
-```
-
-**Download a release**
-
-Grab a zip for your platform from the [releases page](https://github.com/paradise-runner/toast/releases), unzip it, and place the binary on your `$PATH`:
-
-```bash
-# example for Apple Silicon
-curl -Lo toast.zip https://github.com/paradise-runner/toast/releases/latest/download/toast-darwin-arm64.zip
-unzip toast.zip
-install -m755 toast-darwin-arm64 /usr/local/bin/toast
-```
-
-**Standalone macOS app**
-
-> ⚠️ **Experimental:** this bundles toast inside a libghostty terminal window
-> and has more bugs than the terminal version. The TUI — Homebrew or the
-> release binary above — is the primary, best-tested way to run toast.
-
-Prefer a native app over the terminal? Each release also ships **Toast.app** —
-a complete desktop app with its own terminal window (libghostty), native menu
-bar, and dock icon. No terminal, Homebrew, or Go required.
-
-1. Grab the zip for your Mac from the [releases page](https://github.com/paradise-runner/toast/releases/latest):
-   `toast-app-darwin-arm64.zip` for Apple Silicon (M1/M2/M3/M4), `toast-app-darwin-amd64.zip` for Intel.
-2. Unzip it and drag **Toast.app** into your `Applications` folder.
-
-```bash
-curl -LO https://github.com/paradise-runner/toast/releases/latest/download/toast-app-darwin-arm64.zip
-unzip toast-app-darwin-arm64.zip
-mv Toast.app /Applications/
-```
-
-> **First launch:** the app is not code-signed or notarized yet, so macOS
-> Gatekeeper will block a plain double-click. Right-click **Toast.app** in
-> Finder and choose **Open**, then **Open** again — it launches fine from then
-> on. Or clear the quarantine flag once:
-> `xattr -dr com.apple.quarantine /Applications/Toast.app`
-
-
-```bash
-open -a Toast ~/src/foo.go
-open -a Toast ~/src/myproject
-```
-
-**Build from source**
-
-Requires Go 1.25.2+.
-
-```bash
-git clone https://github.com/paradise-runner/toast
-cd toast
+```sh
+gh repo clone benber86/toast-vyper
+cd toast-vyper
 make build
-# binary written to bin/toast
+./bin/toast /path/to/contract.vy
 ```
 
-## Usage
+The `gh` clone command uses your GitHub login, including for private repositories.
+You can also clone `https://github.com/benber86/toast-vyper.git` using Git with
+GitHub authentication configured.
 
-```bash
-toast               # open current directory
-toast path/to/dir   # open a specific directory
-toast path/to/file  # open a file (auto-detects git root)
-toast new/file.go   # open a new file buffer if the parent directory exists
-toast --help
-toast --version
+Install the binary as `toast-vyper` to keep it alongside an existing Toast:
+
+```sh
+mkdir -p "$HOME/.local/bin"
+install -m755 bin/toast "$HOME/.local/bin/toast-vyper"
+export PATH="$HOME/.local/bin:$PATH"
+toast-vyper /path/to/contract.vy
 ```
 
-## Keybindings
-
-All keybindings can be remapped in `~/.config/toast/config.json` (see [Configuration](#configuration)).
-
-| Key | Action |
-|-----|--------|
-| `Ctrl+Q` | Quit |
-| `Ctrl+S` / `Cmd+S` | Save |
-| `Ctrl+W` / `Cmd+W` | Close tab |
-| `Ctrl+P` | Quick-open file search (fuzzy) |
-| `Ctrl+Shift+P` / `Cmd+Shift+P` | Command palette |
-| `Ctrl+Alt+Right` | Next tab |
-| `Ctrl+Alt+Left` | Previous tab |
-| `Ctrl+B` | Toggle sidebar |
-| `Ctrl+Shift+E` | Toggle focus between editor and file tree |
-| `Ctrl+Shift+F` | Search |
-| `Ctrl+F` / `Cmd+F` | Find and replace in the current file |
-| `Ctrl+G` / `Cmd+L` | Go to line |
-| `Ctrl+Shift+M` | Toggle Markdown preview |
-| `Ctrl+Z` / `Cmd+Z` | Undo |
-| `Ctrl+Y` / `Ctrl+Shift+Z` / `Cmd+Y` / `Cmd+Shift+Z` | Redo |
-| `Ctrl+Space` / `Cmd+Space` | Trigger completion |
-| `Ctrl+Shift+K` | Show hover |
-| `Ctrl`+hover / `Ctrl`-click | Check for and follow a definition |
-| `F12` | Go to the definition at the cursor |
-
-## Configuration
-
-Toast reads `~/.config/toast/config.json` on startup. Missing keys fall back to defaults.
-
-```json
-{
-  "theme": "toast-dark",
-  "editor": {
-    "tab_width": 4,
-    "auto_indent": true,
-    "trim_trailing_whitespace_on_save": true,
-    "insert_final_newline_on_save": true,
-    "auto_save": "auto",
-    "auto_save_delay_ms": 300,
-    "bottom_padding": 3
-  },
-  "sidebar": {
-    "visible": true,
-    "width": 30,
-    "confirm_delete": true,
-    "file_icons": {
-      "enabled": true,
-      "color_mode": "accent"
-    }
-  },
-  "ignored_patterns": [".git", "node_modules", "__pycache__", ".DS_Store"]
-}
-```
-
-`auto_save` selects the save mode: `"auto"` (default) writes dirty buffers to
-disk after `auto_save_delay_ms` milliseconds of inactivity, while `"manual"`
-requires an explicit save (`ctrl+s` / `super+s`).
-
-### Keybindings
-
-All default keybindings can be overridden with the `keybindings` object. Each action accepts a list of key strings (supports `ctrl`, `alt`, `shift`, `super` modifiers). An empty list unbinds the action.
-
-```json
-{
-  "keybindings": {
-    "save": ["ctrl+s"],
-    "quick_open": ["ctrl+o"],
-    "next_tab": ["ctrl+tab"],
-    "prev_tab": ["ctrl+shift+tab"],
-    "quit": []
-  }
-}
-```
-
-Available actions: `quit`, `toggle_sidebar`, `save`, `new_file`, `close_tab`, `undo`, `redo`, `next_tab`, `prev_tab`, `search`, `find_replace`, `quick_open`, `command_palette`, `theme_picker`, `go_to_line`, `go_to_definition`, `toggle_focus`, `markdown_preview`, `show_hover`, `trigger_completion`.
-
-Omit `lsp` to use Toast's managed defaults for Go, Rust, Python, JavaScript, TypeScript, and Markdown; set `"lsp": {}` to disable all language servers. 
-
-```json
-{
-  "lsp": {
-    "zig": {
-      "command": "zls",
-      "args": [],
-      "extensions": [".zig"]
-    }
-  }
-}
-```
-
-### Themes
-
-Built-in themes: `system`, `toast-dark`, `toast-light`. Custom themes live in `~/.config/toast/themes/`.
-
-**Import a VSCode theme:**
-
-```bash
-toast migrate-theme vscode path/to/theme.json
-# writes ~/.config/toast/themes/<theme-name>.json
-```
-
-Then set `"theme": "<theme-name>"` in your config.
-
-## Feedback & Issues
-
-Found a bug or have a feature request? We'd love to hear from you! Please open an [issue on GitHub](https://github.com/paradise-runner/toast/issues) with as much detail as possible. Your feedback helps make Toast better.
+Add that PATH export to your shell configuration if needed. To use the command
+`toast` instead, install to `$HOME/.local/bin/toast` and ensure that directory
+comes before your existing Toast installation on PATH.
 
 ## Development
 
-```bash
-make build             # compile
-make run               # go run ./cmd/toast .
-make test              # go test ./...
-make test-integration  # run opt-in Ghostty/tmux terminal integration tests
-make test-integration-update  # refresh golden screenshots
+```sh
+go test ./...
+go vet ./...
 ```
+
+The Vyper grammar, its source attribution, and regeneration instructions live
+in [internal/syntax/vyper](internal/syntax/vyper/README.md). The highlighting
+query is [vyper.scm](internal/syntax/queries/vyper.scm), and language registration
+is in [languages.go](internal/syntax/languages.go).
+
+Based on Toast commit `32dd375`. The implementation also evaluates Tree-sitter
+query predicates so type and keyword captures match only the intended names.
+Tests cover Vyper syntax, file detection, predicate filtering, and incremental
+edits.
+
+See the [upstream README](README.upstream.md) for Toast's editor features,
+keybindings, and configuration. Installation links in that document refer to
+the upstream build.
+
+## License
+
+Toast is MIT licensed; see [LICENSE](LICENSE). The vendored Vyper grammar is
+also MIT licensed, with its license and provenance retained in
+[internal/syntax/vyper](internal/syntax/vyper/README.md).

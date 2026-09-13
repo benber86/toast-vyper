@@ -185,6 +185,7 @@ func (h *Highlighter) HighlightLine(lineStart int, lineContent string) []Span {
 		if !ok {
 			break
 		}
+		m = qc.FilterPredicates(m, h.content)
 		for _, cap := range m.Captures {
 			node := cap.Node
 			nodeStart := node.StartByte()

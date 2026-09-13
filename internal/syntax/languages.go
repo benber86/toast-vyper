@@ -17,6 +17,8 @@ import (
 	"github.com/smacker/go-tree-sitter/rust"
 	"github.com/smacker/go-tree-sitter/typescript/typescript"
 	"github.com/smacker/go-tree-sitter/yaml"
+
+	"github.com/yourusername/toast/internal/syntax/vyper"
 )
 
 //go:embed queries/*.scm
@@ -46,6 +48,7 @@ func init() {
 		{Name: "markdown", Language: tree_sitter_markdown.GetLanguage()},
 		// JSON uses a custom scanner instead of tree-sitter (nil Language).
 		{Name: "json"},
+		{Name: "vyper", Language: vyper.GetLanguage()},
 	}
 	for _, d := range defs {
 		q, err := queriesFS.ReadFile("queries/" + d.Name + ".scm")
@@ -61,6 +64,7 @@ func init() {
 		".hcl": defs[9], ".tf": defs[9], ".tfvars": defs[9],
 		".md": defs[10], ".markdown": defs[10],
 		".json": defs[11], ".jsonc": defs[11],
+		".vy": defs[12], ".vyi": defs[12],
 	}
 	langByName = make(map[string]*LangDef, len(defs))
 	for _, d := range defs {
